@@ -41,6 +41,9 @@ function startGame() {
   socket.emit('start', data);
   gameStarted = 1;
 
+  // Start score
+  setInterval(function() { score++ }, 1000);
+
   menuItems = selectAll('.menu');
   menuItems.forEach(function(item) {
     item.hide()
@@ -70,7 +73,6 @@ function draw() {
     fill(255);
     textSize(50);
     text(score, player.pos.x, player.pos.y - height*0.3);
-    score++;
   }
 }
 
