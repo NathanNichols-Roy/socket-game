@@ -3,12 +3,21 @@ function Character(name, x, y, r) {
   this.pos = createVector(x, y);
   this.r = r;
   this.vel = createVector(0, 0);
+  this.attacked = false;
+  this.punch;
+  this.punchCD = 1000;
 
   this.update = function() {
     var newVel = createVector(mouseX - width/2, mouseY - height/2);
     newVel.setMag(4);
     this.vel.lerp(newVel, 0.1);
     this.pos.add(this.vel);
+
+    if (this.attacked) {
+      this.punch.update();
+    }
+
+    console.log(this.attacked);
 
     this.constrain(900, 900);
   }
@@ -27,6 +36,18 @@ function Character(name, x, y, r) {
       this.pos.y = maxY - this.r;
     if (top <= 0)
       this.pos.y = 0 + this.r;
+  }
+
+  this.attack = function() {
+    if (this.attacked) {
+      return;
+    }
+
+    this.punch = new Punch(this.pos.x, this.pos.y);
+
+    this.attacked = true;
+    setTimeout(function(player) { player.attacked = false; },
+      this.punchCD, this);
   }
 
   this.getHit = function(other) {
@@ -52,12 +73,11 @@ function Character(name, x, y, r) {
     text(this.name, this.pos.x, this.pos.y + 35);
   }
 
-  this.getPos = function () {
+  this.getData = function () {
     var data = {
       name: this.name,
       x: this.pos.x, 
-      y: this.pos.y,
-      r: this.pos.r 
+      y: this.pos.y
     }
 
     return data;
