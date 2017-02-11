@@ -2,12 +2,29 @@ function Character(name, x, y, r) {
   this.name = name;
   this.pos = createVector(x, y);
   this.r = r;
+  this.defaultR = r;
   this.vel = createVector(0, 0);
   this.attacked = false;
   this.punch;
   this.punchCD = 1000;
+  this.dead = false;
+  this.gameOver = false;
 
   this.update = function() {
+    if (this.dead) {
+      this.r = lerp(this.r, 0, 0.1);
+
+      if (this.r > 0.5) {
+        this.show();
+      } else {
+        this.gameOver = true;
+      }
+
+      return;
+    }
+
+    this.show();
+
     var newVel = createVector(mouseX - width/2, mouseY - height/2);
     newVel.setMag(4);
     this.vel.lerp(newVel, 0.1);
@@ -16,26 +33,17 @@ function Character(name, x, y, r) {
     if (this.attacked) {
       this.punch.update();
     }
-
-    console.log(this.attacked);
-
-    this.constrain(900, 900);
   }
 
-  this.constrain = function(maxX, maxY) {
-    var left = this.pos.x - this.r,
-        right = this.pos.x + this.r,
-        top =  this.pos.y - this.r,
-        bottom = this.pos.y + this.r;
+  this.outOfBounds = function(arena) {
+    if (this.pos.x < arena.x1 ||
+        this.pos.y < arena.y1 ||
+        this.pos.x > arena.x2 ||
+        this.pos.y > arena.y2) {
+      return true;
+    }
 
-    if (right >= maxX)
-      this.pos.x = maxX - this.r;
-    if (left <= 0)
-      this.pos.x = 0 + this.r;
-    if (bottom >= maxY)
-      this.pos.y = maxY - this.r;
-    if (top <= 0)
-      this.pos.y = 0 + this.r;
+    return false;
   }
 
   this.attack = function() {
@@ -73,7 +81,7 @@ function Character(name, x, y, r) {
     text(this.name, this.pos.x, this.pos.y + 35);
   }
 
-  this.getData = function () {
+  this.getData = function() {
     var data = {
       name: this.name,
       x: this.pos.x, 

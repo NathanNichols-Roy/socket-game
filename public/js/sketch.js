@@ -2,8 +2,10 @@ var socket;
 
 var player;
 var players = [];
+var arena;
 var arenaSize = 900;
 var score = 0;
+var scoreInterval;
 var gameStarted = 0;
 
 function setup() {
@@ -36,15 +38,20 @@ function startGame() {
   var name = document.getElementById('name-entry').value;
   if (!name) return;
 
+  // Create arena
+  arena = new Arena(0, 0, arenaSize, arenaSize);
+
   // Create instance of the player
-  player = new Character(name, 0, 0, 20);
+  var randX = random(arena.width/2 * 0.2, arena.width/2 * 1.2);
+  var randY = random(arena.height/2 * 0.2, arena.height/2 * 1.2);
+  player = new Character(name, randX, randY, 20);
 
   var data = player.getData();
   socket.emit('start', data);
   gameStarted = 1;
 
   // Start score
-  setInterval(function() { score++ }, 1000);
+  scoreInterval = setInterval(function() { score++ }, 1000);
 
   menuItems = selectAll('.menu');
   menuItems.forEach(function(item) {
@@ -57,22 +64,27 @@ function draw() {
 
   if (gameStarted) {
     translate(width/2 - player.pos.x, height/2 - player.pos.y);
+    arena.show();
     
     sendServerUpdate();
 
-    player.show();
+    if (player.outOfBounds(arena)) {
+      player.dead = true;
+      clearInterval(scoreInterval);
+
+      if (player.gameOver) {
+        showGameOver();
+      }
+    }
+
     player.update();
 
     drawOtherPlayers();
 
-    // boundary
-    noFill();
-    stroke(255, 255, 255);
-    strokeWeight(3);
-    rect(0, 0, arenaSize, arenaSize);
-
     // score
     fill(255);
+    stroke(0);
+    strokeWeight(4);
     textSize(50);
     text(score, player.pos.x, player.pos.y - height*0.3);
   }
@@ -102,11 +114,41 @@ function drawOtherPlayers() {
   }
 }
 
+function showGameOver() {
+  fill(255);
+  stroke(0);
+  strokeWeight(4);
+  textAlign(CENTER);
+  textSize(90);
+  text('You Died', player.pos.x, player.pos.y - 50);
+
+  var restartBtn = select('#restartBtn');
+  if (restartBtn) {
+    restartBtn.show();
+  } else {
+    restartBtn = createButton('Try again');
+    restartBtn.id('restartBtn');
+    restartBtn.position(width/2 - 50, height/2 + 70);
+    restartBtn.size(100, 50);
+    restartBtn.mousePressed(restart);
+  }
+}
+
 function restart() {
-  player.pos.x = 0;
-  player.pos.y = 0;
+  console.log('restart called');
+  var restartBtn = select('#restartBtn');
+  restartBtn.hide();
+
+  var randX = random(arena.width/2 * 0.2, arena.width/2 * 1.2);
+  var randY = random(arena.height/2 * 0.2, arena.height/2 * 1.2);
+  player.pos = createVector(randX, randY);
+  player.attacked = false;
+  player.dead = false;
+  player.gameOver = false;
+  player.r = player.defaultR;
 
   score = 0;
+  scoreInterval = setInterval(function() { score++ }, 1000);
 }
 
 // Controls
