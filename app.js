@@ -16,7 +16,7 @@ var io = socket(server);
 
 var players = [];
 
-// 100 times a second
+// Update client 100 times a second
 setInterval(heartbeat, 10);
 
 function heartbeat() {
