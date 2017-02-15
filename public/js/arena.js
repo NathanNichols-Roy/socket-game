@@ -26,4 +26,15 @@ function Arena(x1, y1, x2, y2) {
       line(0, i, this.width, i);
     }
   }
+
+  this.outOfBounds = function (x, y) {
+    if (x < this.x1 ||
+        y < this.y1 ||
+        x > this.x2 ||
+        y > this.y2) {
+      return true;
+    }
+
+    return false;
+  }
 }

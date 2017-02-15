@@ -1,5 +1,2 @@
 node_modules
 *.swp
-
-# Server code not saved in public repo
-app.js

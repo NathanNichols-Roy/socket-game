@@ -2,11 +2,17 @@ var socket;
 
 var player;
 var players = [];
+var otherPlayerSprites;
+var spriteIds = {};
 var arena;
 var arenaSize = 900;
 var score = 0;
 var scoreInterval;
 var gameStarted = 0;
+
+var enemies;
+var playerX;
+var playerY;
 
 function setup() {
   // Open client connection
@@ -44,7 +50,7 @@ function startGame() {
   // Create instance of the player
   var randX = random(arena.width/2 * 0.2, arena.width/2 * 1.2);
   var randY = random(arena.height/2 * 0.2, arena.height/2 * 1.2);
-  player = new Character(name, randX, randY, 20);
+  player = new Player(name, randX, randY, 20);
 
   var data = player.getData();
   socket.emit('start', data);
@@ -57,18 +63,37 @@ function startGame() {
   menuItems.forEach(function(item) {
     item.hide()
   });
+
+  otherPlayerSprites = new Group();
+
+  enemies = new Group();
+  for (var i = 0; i < 5; i++) {
+    var enemy = createSprite(0, i*100, 20, 20)
+    enemy.setCollider('circle', 0, 0, 20);
+    enemy.setSpeed(random(1, 2), 0);
+    enemy.scale = 1;
+    enemy.mass = 1;
+    enemies.add(enemy);
+  }
 }
 
 function draw() {
   background(0);
 
   if (gameStarted) {
-    translate(width/2 - player.pos.x, height/2 - player.pos.y);
+    var playerX = player.sprite.position.x;
+    var playerY = player.sprite.position.y;
+    
+    // Center camera on player
+    translate(width/2 - playerX, height/2 - playerY);
+
+    console.log(players);
+
     arena.show();
     
     sendServerUpdate();
 
-    if (player.outOfBounds(arena)) {
+    if (arena.outOfBounds(playerX, playerY)) {
       player.dead = true;
       clearInterval(scoreInterval);
 
@@ -77,41 +102,72 @@ function draw() {
       }
     }
 
+    enemies.collide(player.sprite);
+    player.sprite.collide(enemies);
+    player.sprite.collide(otherPlayerSprites);
+    otherPlayerSprites.collide(player.sprite);
     player.update();
 
     drawOtherPlayers();
+    drawSprites();
 
-    // score
-    fill(255);
-    stroke(0);
-    strokeWeight(4);
-    textSize(50);
-    text(score, player.pos.x, player.pos.y - height*0.3);
+    drawScore();
   }
 }
 
 function sendServerUpdate() {
   var data = player.getData();
   data.score = score;
+
   socket.emit('update', data);
 }
 
 function drawOtherPlayers() {
-  for (var i = 0; i < players.length; i++) {
-    // Dont draw self
-    if (players[i].id !== socket.id) {
-      strokeWeight(2);
-      stroke(0, 155, 255);
-      fill(0, 255, 0);
-      ellipse(players[i].x, players[i].y, 40, 40);
+  players.forEach(function(p, i) {
+    if (p.id !== socket.id) {
+      if (!spriteIds.hasOwnProperty(p.id)) {
+        var playerSprite = createSprite(p.x, p.y, p.r, p.r);
+        spriteIds[p.id] = playerSprite;
+        playerSprite.setCollider('circle', 0, 0, p.r);
+        playerSprite.scale = 1;
+        playerSprite.mass = 1;
+        playerSprite.draw = function() {
+          fill(255, 0, 0);
+          ellipse(0, 0, 40, 40);
+        }
+        otherPlayerSprites.add(playerSprite);
+      }
+    
+    // Update other player sprite positions
+    spriteIds[p.id].position.x = p.x;
+    spriteIds[p.id].position.y = p.y;
 
-      fill(255);
-      noStroke();
-      textAlign(CENTER);
-      textSize(14);
-      text(players[i].name, players[i].x, players[i].y + 35);
+    fill(255);
+    noStroke();
+    textAlign(CENTER);
+    textSize(14);
+    text(p.name, spriteIds[p.id].position.x, spriteIds[p.id].position.y + 35);
+
     }
-  }
+  });
+      //strokeWeight(2);
+      //stroke(0, 155, 255);
+      //fill(255, 0, 0);
+      //ellipse(players[i].x, players[i].y, 40, 40);
+
+      //fill(255);
+      //noStroke();
+      //textAlign(CENTER);
+      //textSize(14);
+      //text(players[i].name, players[i].x, players[i].y + 35);
+}
+
+function drawScore() {
+  fill(255);
+  stroke(0);
+  strokeWeight(4);
+  textSize(50);
+  text(score, player.sprite.position.x, player.sprite.position.y - height*0.3);
 }
 
 function showGameOver() {
@@ -120,7 +176,7 @@ function showGameOver() {
   strokeWeight(4);
   textAlign(CENTER);
   textSize(90);
-  text('You Died', player.pos.x, player.pos.y - 50);
+  text('You Died', player.x, player.y - 50);
 
   var restartBtn = select('#restartBtn');
   if (restartBtn) {
@@ -135,26 +191,25 @@ function showGameOver() {
 }
 
 function restart() {
-  console.log('restart called');
   var restartBtn = select('#restartBtn');
   restartBtn.hide();
 
   var randX = random(arena.width/2 * 0.2, arena.width/2 * 1.2);
   var randY = random(arena.height/2 * 0.2, arena.height/2 * 1.2);
-  player.pos = createVector(randX, randY);
-  player.attacked = false;
+  player.sprite.position.x = randX;
+  player.sprite.position.y = randY;
   player.dead = false;
   player.gameOver = false;
-  player.r = player.defaultR;
+  player.sprite.scale = 1;
 
   score = 0;
   scoreInterval = setInterval(function() { score++ }, 1000);
 }
 
 // Controls
-function mouseClicked() {
-  if (gameStarted) {
-    player.attack();
-  }
-}
+//function mouseClicked() {
+//  if (gameStarted) {
+//    player.attack();
+//  }
+//}
 
