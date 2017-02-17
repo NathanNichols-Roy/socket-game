@@ -12,9 +12,9 @@ function Player(name, x, y, r) {
   this.sprite.scale = 1;
   this.sprite.mass = 1;
 
-  this.update = function() {
+  this.update = function(serverPlayer) {
     this.show();
-    this.movement();
+    this.movement(serverPlayer);
     
     if (this.dead) {
       this.sprite.velocity.set(0,0);
@@ -26,15 +26,13 @@ function Player(name, x, y, r) {
 
       return;
     }
-
-    //if (this.attacked) {
-    //  this.punch.update();
-    //}
   }
 
-  this.movement = function() {
-    this.sprite.velocity.x = (mouseX - width/2)/20;
-    this.sprite.velocity.y = (mouseY - height/2)/20;
+  this.movement = function(serverPlayer) {
+    this.sprite.position.x = serverPlayer.x;
+    this.sprite.position.y = serverPlayer.y;
+    //this.sprite.velocity.x = serverPlayer.velX;
+    //this.sprite.velocity.y = serverPlayer.velY;
     this.sprite.limitSpeed(7);
   }
 
@@ -56,28 +54,22 @@ function Player(name, x, y, r) {
       name: this.name,
       x: this.sprite.position.x, 
       y: this.sprite.position.y,
-      r: this.r,
-      velX: this.sprite.velocity.x,
-      velY: this.sprite.velocity.y
-    }
+      r: this.r
+    };
 
     return data;
   }
 
-  //this.attack = function() {
-  //  if (this.attacked) {
-  //    return;
-  //  }
+  this.getInputData = function() {
+    var velX = (mouseX - width/2)/20;
+    var velY = (mouseY - height/2)/20;
 
-  //  this.punch = new Punch(this.pos.x, this.pos.y);
+    var data = {
+      velX: velX,
+      velY: velY
+    };
 
-  //  this.attacked = true;
-  //  setTimeout(function(player) { player.attacked = false; },
-  //    this.punchCD, this);
-  //}
-  //this.getPunch = function() {
-  //  if (this.punch) return this.punch;
-  //  else return null;
-  //}
+    return data;
+  }
 }
 

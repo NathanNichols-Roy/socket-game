@@ -17,7 +17,9 @@ var playerY;
 function setup() {
   // Open client connection
   socket = io.connect('http://localhost:8080')
+  socket.on('clientStart', startGame);
   socket.on('heartbeat', getServerData);
+  socket.on('disconnected', playerDisconnected);
 
   createCanvas(600, 600);
 
@@ -33,14 +35,14 @@ function setup() {
   submitBtn.class('menu');
   submitBtn.position(width/2 - 50, height/2 + 50);
   submitBtn.size(100, 50);
-  submitBtn.mousePressed(startGame);
+  submitBtn.mousePressed(setupEnvironment);
 }
 
 function getServerData(data) {
   players = data;
 }
 
-function startGame() {
+function setupEnvironment() {
   var name = document.getElementById('name-entry').value;
   if (!name) return;
 
@@ -54,15 +56,24 @@ function startGame() {
 
   var data = player.getData();
   socket.emit('start', data);
-  gameStarted = 1;
-
-  // Start score
-  scoreInterval = setInterval(function() { score++ }, 1000);
 
   menuItems = selectAll('.menu');
   menuItems.forEach(function(item) {
     item.hide()
   });
+}
+
+function startGame(data) {
+  // Get player data from server
+  players = data; 
+
+  gameStarted = 1;
+
+  // Start score
+  scoreInterval = setInterval(function() { score++ }, 1000);
+
+  // Set server update interval
+  //setInterval(sendServerUpdate, 5);
 
   otherPlayerSprites = new Group();
 
@@ -87,8 +98,6 @@ function draw() {
     // Center camera on player
     translate(width/2 - playerX, height/2 - playerY);
 
-    console.log(players);
-
     arena.show();
     
     sendServerUpdate();
@@ -106,20 +115,34 @@ function draw() {
     player.sprite.collide(enemies);
     player.sprite.collide(otherPlayerSprites);
     otherPlayerSprites.collide(player.sprite);
-    player.update();
 
-    drawOtherPlayers();
-    drawSprites();
+    var serverPlayer = getSelfFromServer();
+    player.update(serverPlayer);
 
     drawScore();
+    drawOtherPlayers();
+    drawSprites();
   }
 }
 
 function sendServerUpdate() {
-  var data = player.getData();
-  data.score = score;
+  //var data = player.getData();
+  //data.score = score;
 
-  socket.emit('update', data);
+  //socket.emit('update', data);
+
+  var data = player.getInputData();
+  socket.emit('inputData', data);
+}
+
+function getSelfFromServer() {
+  console.log(players.length);
+  for (var i = 0; i < players.length; i++) {
+    console.log(players[i].id + " " + socket.id);
+    if (players[i].id === socket.id) {
+      return players[i];
+    }
+  }
 }
 
 function drawOtherPlayers() {
@@ -147,19 +170,13 @@ function drawOtherPlayers() {
     textAlign(CENTER);
     textSize(14);
     text(p.name, spriteIds[p.id].position.x, spriteIds[p.id].position.y + 35);
-
     }
   });
-      //strokeWeight(2);
-      //stroke(0, 155, 255);
-      //fill(255, 0, 0);
-      //ellipse(players[i].x, players[i].y, 40, 40);
+}
 
-      //fill(255);
-      //noStroke();
-      //textAlign(CENTER);
-      //textSize(14);
-      //text(players[i].name, players[i].x, players[i].y + 35);
+function playerDisconnected(id) {
+  // Remove sprite from the canvas
+  spriteIds[id].remove();
 }
 
 function drawScore() {
@@ -205,11 +222,4 @@ function restart() {
   score = 0;
   scoreInterval = setInterval(function() { score++ }, 1000);
 }
-
-// Controls
-//function mouseClicked() {
-//  if (gameStarted) {
-//    player.attack();
-//  }
-//}
 
