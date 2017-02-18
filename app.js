@@ -83,7 +83,7 @@ io.on('connection', function(socket) {
     //player.velX = data.velX;
     //player.velY = data.velY;
     
-    var speed = getSpeed(player.velX, player.velY);
+    var speed = getMag(player.velX, player.velY);
     var speedLimit = 7;
 
     if (Math.abs(speed) > speedLimit) {
@@ -94,14 +94,9 @@ io.on('connection', function(socket) {
 
     for (var i = 0; i < players.length; i++) {
       if (socket.id !== players[i].id) {
-        if (overlap(
-            player.x,
-            player.y,
-            player.r,
-            players[i].x,
-            players[i].y,
-            players[i].r)) {
+        if (overlap(player, players[i])) {
           console.log('overlap');
+          resolveCollision(player, players[i]);
         }
       }
     }
@@ -128,26 +123,43 @@ io.on('connection', function(socket) {
   });
 });
 
-function getSpeed(velX, velY) {
-  return Math.sqrt(velX*velX + velY*velY);
+function getMag(x, y) {
+  return Math.sqrt(x*x + y*y);
 }
 
-// Need to do after all players are updated
-// update -> calculate collision
-function overlap(x1, y1, r1, x2, y2, r2) {
-  // Check if bounding boxes overlap - not the circles themselves
-  if (x1 + r1 + r2 > x2
-    && x1 < x2 + r1 + r2
-    && y1 + r1 + r2 > y2
-    && y1 < y2 + r1 + r2)
-  {
-    var dist = Math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+function getDist(obj1, obj2) {
+  return Math.sqrt((obj1.x-obj2.x)*(obj1.x-obj2.x) + (obj1.y-obj2.y)*(obj1.y-obj2.y));
+}
 
-    if (dist < r1 + r2) {
-      return true;
-    } else {
-      return false;
-    }
+// Find midpoint between 2 overlapping circles
+function getMidpoint(obj1, obj2) {
+  var midpoint = {};
+  midpoint.x = (obj1.x + obj2.x) / 2;
+  midpoint.y = (obj1.y + obj2.y) / 2;
+  return midpoint;
+}
+
+// Move circles away from eachother if overlapping
+function resolveCollision(obj1, obj2) {
+  var dist = getDist(obj1, obj2);
+  var midpoint = getMidpoint(obj1, obj2);
+
+  obj1.x = midpoint.x + obj1.r * (obj1.x - obj2.x) / dist;
+  obj1.y = midpoint.y + obj1.r * (obj1.y - obj2.y) / dist;
+  obj2.x = midpoint.x + obj2.r * (obj2.x - obj1.x) / dist;
+  obj2.y = midpoint.y + obj2.r * (obj2.y - obj1.y) / dist;
+}
+
+function overlap(obj1, obj2) {
+  // Check if bounding boxes overlap - not the circles themselves
+  if (obj1.x + obj1.r + obj2.r > obj2.x
+    && obj1.x < obj2.x + obj1.r + obj2.r
+    && obj1.y + obj1.r + obj2.r > obj2.y
+    && obj1.y < obj2.y + obj1.r + obj2.r)
+  {
+    var dist = getDist(obj1, obj2);
+
+    return dist < obj1.r + obj2.r;
   }
 
   return false;
@@ -160,16 +172,5 @@ function collisionPoint(x1, y1, r1, x2, y2, r2) {
   point.y = ((y1 * r2) + (y2 * r1) / (r1 + r2));
 
   return point;
-}
-
-function bounce(m1, vx1, vy1, m2, vx2, vy2) {
-  var newVel = {};
-
-  newVel.x1 = (vx1 * (m1 - m2) + (2 * m2 * vx2)) / (m1 + m2);
-  newVel.y1 = (vy1 * (m1 - m2) + (2 * m2 * vy2)) / (m1 + m2);
-  newVel.x2 = (vx2 * (m2 - m1) + (2 * m1 * vx1)) / (m2 + m1);
-  newVel.y2 = (vy2 * (m2 - m1) + (2 * m1 * vy1)) / (m2 + m1);
-
-  return newVel;
 }
 
