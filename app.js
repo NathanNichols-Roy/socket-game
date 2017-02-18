@@ -105,10 +105,10 @@ io.on('connection', function(socket) {
     player.y += player.velY;
 
     // Constrain players for testing
-    if (player.x < 2) player.x = 2;
-    if (player.x > 897) player.x = 897;
-    if (player.y < 2) player.y = 2;
-    if (player.y > 897) player.y = 897;
+    //if (player.x < 2) player.x = 2;
+    //if (player.x > 897) player.x = 897;
+    //if (player.y < 2) player.y = 2;
+    //if (player.y > 897) player.y = 897;
   });
 
   socket.on('disconnect', function(data) {
