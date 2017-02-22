@@ -95,7 +95,6 @@ io.on('connection', function(socket) {
     for (var i = 0; i < players.length; i++) {
       if (socket.id !== players[i].id) {
         if (overlap(player, players[i])) {
-          console.log('overlap');
           resolveCollision(player, players[i]);
         }
       }

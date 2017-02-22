@@ -126,11 +126,6 @@ function draw() {
 }
 
 function sendServerUpdate() {
-  //var data = player.getData();
-  //data.score = score;
-
-  //socket.emit('update', data);
-
   var data = player.getInputData();
   socket.emit('inputData', data);
 }
