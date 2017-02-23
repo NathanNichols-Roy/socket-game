@@ -17,7 +17,6 @@ function Player(name, x, y, r) {
     this.movement(serverPlayer);
     
     if (this.dead) {
-      this.sprite.velocity.set(0,0);
       this.sprite.scale = lerp(this.sprite.scale, 0, 0.1);
 
       if (this.sprite.scale <= 0.2) {
@@ -31,9 +30,6 @@ function Player(name, x, y, r) {
   this.movement = function(serverPlayer) {
     this.sprite.position.x = serverPlayer.x;
     this.sprite.position.y = serverPlayer.y;
-    //this.sprite.velocity.x = serverPlayer.velX;
-    //this.sprite.velocity.y = serverPlayer.velY;
-    this.sprite.limitSpeed(7);
   }
 
   this.show = function() {

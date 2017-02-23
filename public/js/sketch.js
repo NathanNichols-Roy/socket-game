@@ -10,7 +10,6 @@ var score = 0;
 var scoreInterval;
 var gameStarted = 0;
 
-var enemies;
 var playerX;
 var playerY;
 
@@ -20,6 +19,7 @@ function setup() {
   socket.on('clientStart', startGame);
   socket.on('heartbeat', getServerData);
   socket.on('disconnected', playerDisconnected);
+  socket.on('restartGame', restartGame);
 
   createCanvas(600, 600);
 
@@ -76,16 +76,6 @@ function startGame(data) {
   //setInterval(sendServerUpdate, 5);
 
   otherPlayerSprites = new Group();
-
-  enemies = new Group();
-  for (var i = 0; i < 5; i++) {
-    var enemy = createSprite(0, i*100, 20, 20)
-    enemy.setCollider('circle', 0, 0, 20);
-    enemy.setSpeed(random(1, 2), 0);
-    enemy.scale = 1;
-    enemy.mass = 1;
-    enemies.add(enemy);
-  }
 }
 
 function draw() {
@@ -102,7 +92,10 @@ function draw() {
     
     sendServerUpdate();
 
-    if (arena.outOfBounds(playerX, playerY)) {
+    var serverPlayer = getSelfFromServer();
+    player.update(serverPlayer);
+      
+    if (arena.outOfBounds(player.sprite.position.x, player.sprite.position.y)) {
       player.dead = true;
       clearInterval(scoreInterval);
 
@@ -110,14 +103,6 @@ function draw() {
         showGameOver();
       }
     }
-
-    enemies.collide(player.sprite);
-    player.sprite.collide(enemies);
-    player.sprite.collide(otherPlayerSprites);
-    otherPlayerSprites.collide(player.sprite);
-
-    var serverPlayer = getSelfFromServer();
-    player.update(serverPlayer);
 
     drawScore();
     drawOtherPlayers();
@@ -131,9 +116,7 @@ function sendServerUpdate() {
 }
 
 function getSelfFromServer() {
-  console.log(players.length);
   for (var i = 0; i < players.length; i++) {
-    console.log(players[i].id + " " + socket.id);
     if (players[i].id === socket.id) {
       return players[i];
     }
@@ -188,7 +171,7 @@ function showGameOver() {
   strokeWeight(4);
   textAlign(CENTER);
   textSize(90);
-  text('You Died', player.x, player.y - 50);
+  text('You Died', player.sprite.position.x, player.sprite.position.y - 50);
 
   var restartBtn = select('#restartBtn');
   if (restartBtn) {
@@ -198,18 +181,27 @@ function showGameOver() {
     restartBtn.id('restartBtn');
     restartBtn.position(width/2 - 50, height/2 + 70);
     restartBtn.size(100, 50);
-    restartBtn.mousePressed(restart);
+    restartBtn.mousePressed(restartClicked);
   }
 }
 
-function restart() {
+function restartClicked() {
+  socket.emit('restartClicked');
+}
+
+// Called after server sends signal
+function restartGame(data) {
   var restartBtn = select('#restartBtn');
   restartBtn.hide();
 
-  var randX = random(arena.width/2 * 0.2, arena.width/2 * 1.2);
-  var randY = random(arena.height/2 * 0.2, arena.height/2 * 1.2);
-  player.sprite.position.x = randX;
-  player.sprite.position.y = randY;
+  for (var i = 0; i < players.length; i++) {
+    if (players[i].id === socket.id) {
+      players[i] = data;
+    }
+  }
+
+  player.sprite.position.x = data.x;
+  player.sprite.position.y = data.y;
   player.dead = false;
   player.gameOver = false;
   player.sprite.scale = 1;

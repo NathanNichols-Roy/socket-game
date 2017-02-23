@@ -1,6 +1,7 @@
 var express = require('express');
 var socket = require('socket.io');
 var Player = require('./player.js');
+var Arena = require('./arena.js');
 
 var app = express();
 
@@ -15,6 +16,7 @@ app.use(express.static('public'));
 var io = socket(server);
 
 var players = [];
+var arena = new Arena(0, 0, 900, 900);
 
 // Send all player statuses to client ~60 times a second
 setInterval(heartbeat, 16);
@@ -38,7 +40,7 @@ io.on('connection', function(socket) {
       0);
     players.push(player);
 
-    // Signal to start game on client
+    // Signal client to start game
     socket.emit('clientStart', players);
   });
 
@@ -100,6 +102,11 @@ io.on('connection', function(socket) {
       }
     }
 
+    // Stop movement if dead
+    if (arena.outOfBounds(player.x, player.y)) {
+      return;
+    }
+
     player.x += player.velX;
     player.y += player.velY;
 
@@ -110,7 +117,26 @@ io.on('connection', function(socket) {
     //if (player.y > 897) player.y = 897;
   });
 
-  socket.on('disconnect', function(data) {
+  // Player hit retry button after death
+  socket.on('restartClicked', function() {
+    // Get sender player
+    players.forEach(function(p, i) {
+      if (socket.id === p.id) {
+        player = p;
+      }
+    });
+
+    // Place player somewhere near the center
+    var randX = getRandomInt(arena.width/2 * 0.2, arena.width/2 * 1.2);
+    var randY = getRandomInt(arena.height/2 * 0.2, arena.height/2 * 1.2);
+    player.x = randX;
+    player.y = randY;
+
+    // Signal client to restart
+    socket.emit('restartGame', player);
+  });
+
+  socket.on('disconnect', function() {
     for (var i = 0; i < players.length; i++) {
       if (socket.id === players[i].id) {
         players.splice(i, 1);
@@ -171,5 +197,9 @@ function collisionPoint(x1, y1, r1, x2, y2, r2) {
   point.y = ((y1 * r2) + (y2 * r1) / (r1 + r2));
 
   return point;
+}
+
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
