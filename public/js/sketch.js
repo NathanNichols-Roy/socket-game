@@ -15,7 +15,7 @@ var playerY;
 
 function setup() {
   // Open client connection
-  socket = io.connect('http://localhost:8080')
+  socket = io.connect('http://localhost:8080');
   socket.on('clientStart', startGame);
   socket.on('heartbeat', getServerData);
   socket.on('disconnected', playerDisconnected);
