@@ -17,7 +17,7 @@ function setup() {
   // Open client connection
   socket = io.connect('http://localhost:8080');
   socket.on('clientStart', startGame);
-  socket.on('heartbeat', getServerData);
+  socket.on('serverTick', getServerData);
   socket.on('disconnected', playerDisconnected);
   socket.on('restartGame', restartGame);
 
@@ -52,7 +52,8 @@ function setupEnvironment() {
   // Create instance of the player
   var randX = random(arena.width/2 * 0.2, arena.width/2 * 1.2);
   var randY = random(arena.height/2 * 0.2, arena.height/2 * 1.2);
-  player = new Player(name, randX, randY, 20);
+  player = new Player(name, randX, 50, 20);
+  //player = new Player(name, randX, randY, 20);
 
   var data = player.getData();
   socket.emit('start', data);
@@ -117,7 +118,7 @@ function sendServerUpdate() {
 
 function getSelfFromServer() {
   for (var i = 0; i < players.length; i++) {
-    if (players[i].id === socket.id) {
+    if (players[i].socketId === socket.id) {
       return players[i];
     }
   }
@@ -125,10 +126,10 @@ function getSelfFromServer() {
 
 function drawOtherPlayers() {
   players.forEach(function(p, i) {
-    if (p.id !== socket.id) {
-      if (!spriteIds.hasOwnProperty(p.id)) {
+    if (p.socketId !== socket.id) {
+      if (!spriteIds.hasOwnProperty(p.socketId)) {
         var playerSprite = createSprite(p.x, p.y, p.r, p.r);
-        spriteIds[p.id] = playerSprite;
+        spriteIds[p.socketId] = playerSprite;
         playerSprite.setCollider('circle', 0, 0, p.r);
         playerSprite.scale = 1;
         playerSprite.mass = 1;
@@ -140,14 +141,14 @@ function drawOtherPlayers() {
       }
     
     // Update other player sprite positions
-    spriteIds[p.id].position.x = p.x;
-    spriteIds[p.id].position.y = p.y;
+    spriteIds[p.socketId].position.x = p.x;
+    spriteIds[p.socketId].position.y = p.y;
 
     fill(255);
     noStroke();
     textAlign(CENTER);
     textSize(14);
-    text(p.name, spriteIds[p.id].position.x, spriteIds[p.id].position.y + 35);
+    text(p.name, spriteIds[p.socketId].position.x, spriteIds[p.socketId].position.y + 35);
     }
   });
 }
@@ -195,7 +196,7 @@ function restartGame(data) {
   restartBtn.hide();
 
   for (var i = 0; i < players.length; i++) {
-    if (players[i].id === socket.id) {
+    if (players[i].socketId === socket.id) {
       players[i] = data;
     }
   }

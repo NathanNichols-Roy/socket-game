@@ -57,12 +57,12 @@ function Player(name, x, y, r) {
   }
 
   this.getInputData = function() {
-    var velX = (mouseX - width/2)/20;
-    var velY = (mouseY - height/2)/20;
+    var mousex = mouseX - width/2;
+    var mousey = mouseY - height/2;
 
     var data = {
-      velX: velX,
-      velY: velY
+      mousex: mousex,
+      mousey: mousey
     };
 
     return data;
