@@ -4,7 +4,7 @@
   "description": "multiplayer game. Node.js and express",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js",
+    "start": "nodemon app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Nathan Nichols-Roy",
@@ -13,5 +13,8 @@
     "express": "^4.14.1",
     "matter-js": "^0.12.0",
     "socket.io": "^1.7.2"
+  },
+  "devDependencies": {
+    "nodemon": "^1.11.0"
   }
 }
