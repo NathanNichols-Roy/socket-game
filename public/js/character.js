@@ -55,17 +55,5 @@ function Player(name, x, y, r) {
 
     return data;
   }
-
-  this.getInputData = function() {
-    var mousex = mouseX - width/2;
-    var mousey = mouseY - height/2;
-
-    var data = {
-      mousex: mousex,
-      mousey: mousey
-    };
-
-    return data;
-  }
 }
 

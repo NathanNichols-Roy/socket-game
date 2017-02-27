@@ -69,17 +69,16 @@ Matter.Events.on(engine, 'beforeUpdate', function(event) {
   for (var i = 0; i < allBodies.length; i++) {
     for (var j = 0; j < players.length; j++) {
       if (players[j].socketId === allBodies[i].socketId) {
-        // Apply force to player from center of body to mouse position.
+        // Apply force to player from center of body to mouse position
         var force = Matter.Vector.create(allBodies[i].mousex, allBodies[i].mousey);
         force = Matter.Vector.div(force, 2000);
         force = limitVectorMagnitude(force, 0.1);
         force = Matter.Vector.add(force, allBodies[i].forceToBeApplied);
-        console.log(allBodies[i].dashed);
+        // Reset dashing force. Body force gets reset every update
+        allBodies[i].forceToBeApplied = Matter.Vector.create(0, 0);
 
         Matter.Body.applyForce(allBodies[i], allBodies[i].position, force);
 
-        // Reset dashing force. Body force gets reset every update
-        allBodies[i].forceToBeApplied = Matter.Vector.create(0, 0);
 
         players[j].update(allBodies[i]);
       }
@@ -131,7 +130,7 @@ io.on('connection', function(socket) {
   });
 
   // Mouse data sent from client
-  socket.on('inputData', function(data) {
+  socket.on('mousePos', function(data) {
     var playerBody = getPlayerBodyById(socket.id);
     playerBody.mousex = data.mousex;
     playerBody.mousey = data.mousey;

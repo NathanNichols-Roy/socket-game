@@ -111,8 +111,8 @@ function draw() {
 }
 
 function sendServerUpdate() {
-  var data = player.getInputData();
-  socket.emit('inputData', data);
+  var data = getMousePos();
+  socket.emit('mousePos', data);
 }
 
 function getSelfFromServer() {
@@ -212,14 +212,17 @@ function restartGame(data) {
 
 function mouseClicked() {
   if (gameStarted) {
-    // Mouse position relative to center
-    var mousePos = {
-      mousex: mouseX - width/2,
-      mousey: mouseY - height/2
-    };
-
+    var mousePos = getMousePos();
     socket.emit('mouseClicked', mousePos);
-    setTimeout(resetDashCD, 2000);
   }
+}
+
+function getMousePos() {
+  var mousePos = {
+    mousex: mouseX - width/2,
+    mousey: mouseY - height/2
+  };
+
+  return mousePos;
 }
 
