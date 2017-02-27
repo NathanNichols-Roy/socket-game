@@ -36,9 +36,31 @@ function serverTick() {
 var players = [];
 var arena = new Arena(0, 0, 900, 900);
 
-//---------------
-// Events
-//---------------
+function createPlayerBody(socketId, name, x, y, r) {
+  var options = { 
+    friction: 0.5,
+    frictionAir: 0.3,
+    mass: 10,
+    restitution: 1
+  };
+  var playerBody = Matter.Bodies.circle(x, y, r, options);
+
+  // Custom properties
+  playerBody.socketId = socketId;
+  playerBody.name = name;
+  playerBody.score = 0;
+  playerBody.mousex = arena.width/2;
+  playerBody.mousey = arena.height/2;
+  playerBody.dashed = false;
+  playerBody.dashCD = 1500;
+  playerBody.forceToBeApplied = Matter.Vector.create(0, 0);
+  playerBody.velocityToBeApplied = Matter.Vector.create(0, 0);
+  return playerBody;
+}
+
+//-----------------
+// EVENTS
+//-----------------
 
 Matter.Events.on(engine, 'beforeUpdate', function(event) {
   var allBodies = engine.world.bodies;
@@ -47,7 +69,18 @@ Matter.Events.on(engine, 'beforeUpdate', function(event) {
   for (var i = 0; i < allBodies.length; i++) {
     for (var j = 0; j < players.length; j++) {
       if (players[j].socketId === allBodies[i].socketId) {
-        Matter.Body.applyForce(allBodies[i], allBodies[i].position, allBodies[i].forceToBeApplied);
+        // Apply force to player from center of body to mouse position.
+        var force = Matter.Vector.create(allBodies[i].mousex, allBodies[i].mousey);
+        force = Matter.Vector.div(force, 2000);
+        force = limitVectorMagnitude(force, 0.1);
+        force = Matter.Vector.add(force, allBodies[i].forceToBeApplied);
+        console.log(allBodies[i].dashed);
+
+        Matter.Body.applyForce(allBodies[i], allBodies[i].position, force);
+
+        // Reset dashing force. Body force gets reset every update
+        allBodies[i].forceToBeApplied = Matter.Vector.create(0, 0);
+
         players[j].update(allBodies[i]);
       }
     }
@@ -67,7 +100,6 @@ Matter.Events.on(engine, 'afterUpdate', function(event) {
           allBodies[i].score = 0;
 
           playerData = getPlayerDataById(allBodies[i].socketId);
-          console.log(playerData);
           playerData.update(allBodies[i]);
         }
       }
@@ -98,39 +130,28 @@ io.on('connection', function(socket) {
     console.log(socket.id + " Game started!");
   });
 
+  // Mouse data sent from client
   socket.on('inputData', function(data) {
-    var allBodies = engine.world.bodies;
     var playerBody = getPlayerBodyById(socket.id);
-    var playerData = getPlayerDataById(socket.id);
- 
+    playerBody.mousex = data.mousex;
+    playerBody.mousey = data.mousey;
     playerBody.score++;
+  });
 
-    // Apply force to player from center of body to mouse position.
-    // Think of force like acceleration
-    // fix so that player can stop moving
-    var force = {
-      x: data.mousex / 10000,
-      y: data.mousey / 10000
-    };
+  // Dashing
+  socket.on('mouseClicked', function(data) {
+    var playerBody = getPlayerBodyById(socket.id);
 
-    playerBody.forceToBeApplied = force;
+    if (!playerBody.dashed) {
+      // Apply burst of force in dir of mouse
+      var force = Matter.Vector.create(data.mousex, data.mousey);
+      force = Matter.Vector.normalise(force);
+      //force = Matter.Vector.div(force, 10);
+      playerBody.forceToBeApplied = force;
 
-    // Limit force
-    //var forceMag = Matter.Vector.magnitude(force);
-    //var forceLimit = .005;
-    //if (forceMag > forceLimit) {
-    //  var k = forceLimit / forceMag;
-    //  force.x *= k;
-    //  force.y *= k;
-    //}
-    // Limit velocity 
-    //var speedMag = Matter.Vector.magnitude(playerBody.velocity);
-    //var speedLimit = 6;
-    //if (speedMag > speedLimit) {
-    //  var j = speedLimit / speedMag;
-    //  var velocityNew = Matter.Vector.mult(playerBody.velocity, j);
-    //  Matter.Body.setVelocity(playerBody, velocityNew);
-    //}
+      playerBody.dashed = true;
+      setTimeout(resetDashCD, playerBody.dashCD, playerBody);
+    }
   });
 
   // Player hit retry button after death
@@ -151,14 +172,15 @@ io.on('connection', function(socket) {
 
     // Signal client to restart
     socket.emit('restartGame', playerData);
-    console.log(newPlayerBody);
   });
 
   socket.on('disconnect', function() {
-    for (var i = 0; i < players.length; i++) {
-      if (socket.id === players[i].socketId) {
-        players.splice(i, 1);
-      }
+    var playerBody = getPlayerBodyById(socket.id);
+
+    // Remove player and data objects if they exist
+    if (playerBody) {
+      removePlayerData(socket.id);
+      removePlayerBody(playerBody);
     }
 
     io.sockets.emit('disconnected', socket.id);
@@ -166,23 +188,24 @@ io.on('connection', function(socket) {
   });
 });
 
-function createPlayerBody(socketId, name, x, y, r) {
-  var options = { 
-    mass: 10,
-    restitution: 1
-  };
-  var playerBody = Matter.Bodies.circle(x, y, r, options);
+//-----------------
+// HELPER FUNCTIONS
+//-----------------
 
-  // Custom properties
-  playerBody.socketId = socketId;
-  playerBody.name = name;
-  playerBody.score = 0;
-  playerBody.forceToBeApplied = Matter.Vector.create(0, 0);
-  return playerBody;
+function resetDashCD(playerBody) {
+  playerBody.dashed = false;
 }
 
 function removePlayerBody(playerBody) {
   Matter.Composite.remove(engine.world, playerBody);
+}
+
+function removePlayerData(socketId) {
+  for (var i = 0; i < players.length; i++) {
+    if (socketId === players[i].socketId) {
+      players.splice(i, 1);
+    }
+  }
 }
 
 // Returns playerData object
@@ -210,5 +233,31 @@ function getPlayerDataById(socketId) {
   });
 
   return playerData;
+}
+
+function applyVelocity(playerBody) {
+  var velocityDelta = Matter.Vector.sub(playerBody.velocityToBeApplied, playerBody.velocity);
+  var velocity = Matter.Vector.add(playerBody.velocity, velocityDelta);
+
+  // Limit speed 
+ // var speedLimit = 5;
+ // var speed = Matter.Vector.magnitude(velocity);
+ // if (speed > speedLimit) {
+ //   var ratio = speedLimit / speed;
+ //   velocity = Matter.Vector.mult(velocity, ratio);
+ // }
+
+  Matter.Body.setVelocity(playerBody, velocity);
+}
+
+// Limits a vectors magnitude to a given maximum
+function limitVectorMagnitude(vector, max) {
+  var mag = Matter.Vector.magnitude(vector);
+  if (mag > max) {
+    var ratio = max / mag;
+    vector = Matter.Vector.mult(vector, ratio);
+  }
+
+  return vector;
 }
 

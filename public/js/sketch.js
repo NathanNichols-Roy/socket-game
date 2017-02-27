@@ -52,8 +52,7 @@ function setupEnvironment() {
   // Create instance of the player
   var randX = random(arena.width/2 * 0.2, arena.width/2 * 1.2);
   var randY = random(arena.height/2 * 0.2, arena.height/2 * 1.2);
-  player = new Player(name, randX, 50, 20);
-  //player = new Player(name, randX, randY, 20);
+  player = new Player(name, randX, randY, 20);
 
   var data = player.getData();
   socket.emit('start', data);
@@ -209,5 +208,18 @@ function restartGame(data) {
 
   score = 0;
   scoreInterval = setInterval(function() { score++ }, 1000);
+}
+
+function mouseClicked() {
+  if (gameStarted) {
+    // Mouse position relative to center
+    var mousePos = {
+      mousex: mouseX - width/2,
+      mousey: mouseY - height/2
+    };
+
+    socket.emit('mouseClicked', mousePos);
+    setTimeout(resetDashCD, 2000);
+  }
 }
 
