@@ -82,27 +82,23 @@ function draw() {
   background(0);
 
   if (gameStarted) {
-    var playerX = player.sprite.position.x;
-    var playerY = player.sprite.position.y;
-    
-    // Center camera on player
-    translate(width/2 - playerX, height/2 - playerY);
-
-    arena.show();
-    
-    sendServerUpdate();
-
     var serverPlayer = getSelfFromServer();
     player.update(serverPlayer);
-      
-    if (arena.outOfBounds(player.sprite.position.x, player.sprite.position.y)) {
-      player.dead = true;
+    // Center camera on player
+    translate(width/2 - player.sprite.position.x, height/2 - player.sprite.position.y);
+
+    arena.show();
+    player.show();
+
+    if (serverPlayer.dead) {
       clearInterval(scoreInterval);
 
       if (player.gameOver) {
         showGameOver();
       }
     }
+      
+    sendServerUpdate();
 
     drawScore();
     drawOtherPlayers();

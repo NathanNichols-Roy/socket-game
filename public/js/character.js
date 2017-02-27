@@ -13,10 +13,9 @@ function Player(name, x, y, r) {
   this.sprite.mass = 1;
 
   this.update = function(serverPlayer) {
-    this.show();
     this.movement(serverPlayer);
     
-    if (this.dead) {
+    if (serverPlayer.dead) {
       this.sprite.scale = lerp(this.sprite.scale, 0, 0.1);
 
       if (this.sprite.scale <= 0.2) {

@@ -22,6 +22,7 @@ var engine = Matter.Engine.create();
 engine.world.gravity.y = 0;
 
 // Send all player statuses to client ~60 times a second
+// 16
 setInterval(serverTick, 16);
 
 function serverTick() {
@@ -99,6 +100,7 @@ Matter.Events.on(engine, 'afterUpdate', function(event) {
           allBodies[i].score = 0;
 
           playerData = getPlayerDataById(allBodies[i].socketId);
+          playerData.setDead(true);
           playerData.update(allBodies[i]);
         }
       }
@@ -134,7 +136,6 @@ io.on('connection', function(socket) {
     var playerBody = getPlayerBodyById(socket.id);
     playerBody.mousex = data.mousex;
     playerBody.mousey = data.mousey;
-    playerBody.score++;
   });
 
   // Dashing
@@ -167,6 +168,7 @@ io.on('connection', function(socket) {
     removePlayerBody(playerBody);
     // Add player
     Matter.World.addBody(engine.world, newPlayerBody);
+    playerData.setDead(false);
     playerData.update(newPlayerBody);
 
     // Signal client to restart
