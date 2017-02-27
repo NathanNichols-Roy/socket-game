@@ -6,8 +6,6 @@ var otherPlayerSprites;
 var spriteIds = {};
 var arena;
 var arenaSize = 900;
-var score = 0;
-var scoreInterval;
 var gameStarted = 0;
 
 var playerX;
@@ -69,9 +67,6 @@ function startGame(data) {
 
   gameStarted = 1;
 
-  // Start score
-  scoreInterval = setInterval(function() { score++ }, 1000);
-
   // Set server update interval
   //setInterval(sendServerUpdate, 5);
 
@@ -91,7 +86,6 @@ function draw() {
     player.show();
 
     if (serverPlayer.dead) {
-      clearInterval(scoreInterval);
 
       if (player.gameOver) {
         showGameOver();
@@ -158,7 +152,7 @@ function drawScore() {
   stroke(0);
   strokeWeight(4);
   textSize(50);
-  text(score, player.sprite.position.x, player.sprite.position.y - height*0.3);
+  text(player.score, player.sprite.position.x, player.sprite.position.y - height*0.3);
 }
 
 function showGameOver() {
@@ -201,9 +195,6 @@ function restartGame(data) {
   player.dead = false;
   player.gameOver = false;
   player.sprite.scale = 1;
-
-  score = 0;
-  scoreInterval = setInterval(function() { score++ }, 1000);
 }
 
 function mouseClicked() {

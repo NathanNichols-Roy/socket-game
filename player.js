@@ -12,6 +12,7 @@ function PlayerData(socketId, name, x, y, r, score) {
     this.y = playerBody.position.y;
     this.r = playerBody.circleRadius;
     this.score = playerBody.score;
+    this.dead = playerBody.isStatic;
   }
 
   this.setDead = function(flag) {

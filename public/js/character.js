@@ -4,6 +4,7 @@ function Player(name, x, y, r) {
   this.y = y;
   this.r = r;
   this.sprite = createSprite(x, y, r, r);
+  this.score = 0;
   this.dead = false;
   this.gameOver = false;
   
@@ -14,6 +15,7 @@ function Player(name, x, y, r) {
 
   this.update = function(serverPlayer) {
     this.movement(serverPlayer);
+    this.score = serverPlayer.score;
     
     if (serverPlayer.dead) {
       this.sprite.scale = lerp(this.sprite.scale, 0, 0.1);

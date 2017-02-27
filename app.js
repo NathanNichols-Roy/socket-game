@@ -18,17 +18,14 @@ var io = socket(server);
 
 // Matter.js engine and world creation
 var engine = Matter.Engine.create();
-// Set y gravity to zero becuase it defaults as 1
 engine.world.gravity.y = 0;
+engine.timing.delta = 1000 / 60;
 
-// Send all player statuses to client ~60 times a second
-// 16
-setInterval(serverTick, 16);
+// Server tick rate 60hz
+setInterval(serverTick, engine.timing.delta);
 
 function serverTick() {
-  //Matter.Events.trigger(engine, 'tick', {timestamp: engine.timing.timestamp});
   Matter.Engine.update(engine, engine.timing.delta);
-  //Matter.Events.trigger(engine, 'afterTick', {timestamp: engine.timing.timestamp});
 
   io.sockets.emit('serverTick', players);
 }
@@ -49,7 +46,8 @@ function createPlayerBody(socketId, name, x, y, r) {
   // Custom properties
   playerBody.socketId = socketId;
   playerBody.name = name;
-  playerBody.score = 0;
+  playerBody.score = 0
+  playerBody.rawScore = 0;
   playerBody.mousex = arena.width/2;
   playerBody.mousey = arena.height/2;
   playerBody.dashed = false;
@@ -70,16 +68,18 @@ Matter.Events.on(engine, 'beforeUpdate', function(event) {
   for (var i = 0; i < allBodies.length; i++) {
     for (var j = 0; j < players.length; j++) {
       if (players[j].socketId === allBodies[i].socketId) {
-        // Apply force to player from center of body to mouse position
         var force = Matter.Vector.create(allBodies[i].mousex, allBodies[i].mousey);
         force = Matter.Vector.div(force, 2000);
         force = limitVectorMagnitude(force, 0.1);
         force = Matter.Vector.add(force, allBodies[i].forceToBeApplied);
+
+        // Apply force to player from center of body to mouse position
+        Matter.Body.applyForce(allBodies[i], allBodies[i].position, force);
+
         // Reset dashing force. Body force gets reset every update
         allBodies[i].forceToBeApplied = Matter.Vector.create(0, 0);
 
-        Matter.Body.applyForce(allBodies[i], allBodies[i].position, force);
-
+        updateScore(allBodies[i]);
 
         players[j].update(allBodies[i]);
       }
@@ -97,10 +97,8 @@ Matter.Events.on(engine, 'afterUpdate', function(event) {
         if (!allBodies[i].isStatic) {
           Matter.Body.scale(allBodies[i], 0, 0);
           Matter.Body.setStatic(allBodies[i], true);
-          allBodies[i].score = 0;
 
           playerData = getPlayerDataById(allBodies[i].socketId);
-          playerData.setDead(true);
           playerData.update(allBodies[i]);
         }
       }
@@ -168,7 +166,6 @@ io.on('connection', function(socket) {
     removePlayerBody(playerBody);
     // Add player
     Matter.World.addBody(engine.world, newPlayerBody);
-    playerData.setDead(false);
     playerData.update(newPlayerBody);
 
     // Signal client to restart
@@ -236,19 +233,12 @@ function getPlayerDataById(socketId) {
   return playerData;
 }
 
-function applyVelocity(playerBody) {
-  var velocityDelta = Matter.Vector.sub(playerBody.velocityToBeApplied, playerBody.velocity);
-  var velocity = Matter.Vector.add(playerBody.velocity, velocityDelta);
-
-  // Limit speed 
- // var speedLimit = 5;
- // var speed = Matter.Vector.magnitude(velocity);
- // if (speed > speedLimit) {
- //   var ratio = speedLimit / speed;
- //   velocity = Matter.Vector.mult(velocity, ratio);
- // }
-
-  Matter.Body.setVelocity(playerBody, velocity);
+function updateScore(playerBody) {
+  // Add score if alive
+  if (!playerBody.isStatic) {
+    playerBody.rawScore++;
+    playerBody.score = Math.floor(playerBody.rawScore / 60);
+  }
 }
 
 // Limits a vectors magnitude to a given maximum
