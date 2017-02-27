@@ -5,6 +5,7 @@ function PlayerData(socketId, name, x, y, r, score) {
   this.y = y;
   this.r = r;
   this.score = score;
+  this.dashed = false
   this.dead = false;
 
   this.update = function(playerBody) {
@@ -12,6 +13,7 @@ function PlayerData(socketId, name, x, y, r, score) {
     this.y = playerBody.position.y;
     this.r = playerBody.circleRadius;
     this.score = playerBody.score;
+    this.dashed = playerBody.dashed;
     this.dead = playerBody.isStatic;
   }
 

@@ -95,12 +95,14 @@ Matter.Events.on(engine, 'afterUpdate', function(event) {
       // Died. Make static, scale to 0
       if (arena.outOfBounds(allBodies[i].position.x, allBodies[i].position.y)) {
         if (!allBodies[i].isStatic) {
-          Matter.Body.scale(allBodies[i], 0, 0);
           Matter.Body.setStatic(allBodies[i], true);
 
           playerData = getPlayerDataById(allBodies[i].socketId);
           playerData.update(allBodies[i]);
         }
+
+        // Fall off the map
+        Matter.Body.scale(allBodies[i], .9, .9);
       }
     }
 });

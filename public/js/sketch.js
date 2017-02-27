@@ -80,12 +80,12 @@ function draw() {
     var serverPlayer = getSelfFromServer();
     player.update(serverPlayer);
     // Center camera on player
-    translate(width/2 - player.sprite.position.x, height/2 - player.sprite.position.y);
+    translate(width/2 - player.x, height/2 - player.y);
 
     arena.show();
     player.show();
 
-    if (serverPlayer.dead) {
+    if (player.dead) {
 
       if (player.gameOver) {
         showGameOver();
@@ -96,7 +96,6 @@ function draw() {
 
     drawScore();
     drawOtherPlayers();
-    drawSprites();
   }
 }
 
@@ -115,29 +114,19 @@ function getSelfFromServer() {
 
 function drawOtherPlayers() {
   players.forEach(function(p, i) {
+    // Dont draw self
     if (p.socketId !== socket.id) {
-      if (!spriteIds.hasOwnProperty(p.socketId)) {
-        var playerSprite = createSprite(p.x, p.y, p.r, p.r);
-        spriteIds[p.socketId] = playerSprite;
-        playerSprite.setCollider('circle', 0, 0, p.r);
-        playerSprite.scale = 1;
-        playerSprite.mass = 1;
-        playerSprite.draw = function() {
-          fill(255, 0, 0);
-          ellipse(0, 0, 40, 40);
-        }
-        otherPlayerSprites.add(playerSprite);
-      }
-    
-    // Update other player sprite positions
-    spriteIds[p.socketId].position.x = p.x;
-    spriteIds[p.socketId].position.y = p.y;
+      if (p.dashed) fill(150, 0, 0);
+      else fill(255, 0, 0);
+      stroke(0)
+      strokeWeight(2);
+      ellipse(p.x, p.y, p.r*2, p.r*2);
 
-    fill(255);
-    noStroke();
-    textAlign(CENTER);
-    textSize(14);
-    text(p.name, spriteIds[p.socketId].position.x, spriteIds[p.socketId].position.y + 35);
+      fill(255);
+      noStroke();
+      textAlign(CENTER);
+      textSize(14);
+      text(p.name, p.x, p.y + 35);
     }
   });
 }
@@ -152,7 +141,7 @@ function drawScore() {
   stroke(0);
   strokeWeight(4);
   textSize(50);
-  text(player.score, player.sprite.position.x, player.sprite.position.y - height*0.3);
+  text(player.score, player.x, player.y - height*0.3);
 }
 
 function showGameOver() {
@@ -161,7 +150,7 @@ function showGameOver() {
   strokeWeight(4);
   textAlign(CENTER);
   textSize(90);
-  text('You Died', player.sprite.position.x, player.sprite.position.y - 50);
+  text('You Died', player.x, player.y - 50);
 
   var restartBtn = select('#restartBtn');
   if (restartBtn) {
@@ -190,11 +179,9 @@ function restartGame(data) {
     }
   }
 
-  player.sprite.position.x = data.x;
-  player.sprite.position.y = data.y;
-  player.dead = false;
+  player.x = data.x;
+  player.y = data.y;
   player.gameOver = false;
-  player.sprite.scale = 1;
 }
 
 function mouseClicked() {
