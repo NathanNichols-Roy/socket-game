@@ -22,15 +22,16 @@ var engine = Matter.Engine.create();
 engine.world.gravity.y = 0;
 engine.timing.delta = 1000 / 60;
 
-
-
 // Server tick rate 60hz
 setInterval(serverTick, engine.timing.delta);
 
 function serverTick() {
   Matter.Engine.update(engine, engine.timing.delta);
 
-  io.sockets.emit('serverTick', players);
+  var connectedUsers = Object.keys(io.sockets.connected).length;
+  if (connectedUsers >= 1) {
+    io.sockets.emit('serverTick', players);
+  }
 }
 
 // Game variables
