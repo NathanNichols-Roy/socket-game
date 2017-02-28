@@ -104,15 +104,12 @@ Matter.Events.on(engine, 'afterUpdate', function(event) {
           playerData = getPlayerDataById(allBodies[i].socketId);
           playerData.update(allBodies[i]);
           
-          // Add score to scores table
-          db.addScore(playerData);
+          addHighScore(playerData);
 
-          console.log(allBodies[i].socketId);
           if (io.sockets.connected[playerData.socketId]) {
             db.getHighScores(function(scores) {
               io.sockets.connected[playerData.socketId].emit('scores', scores);
             });
-
           }
         }
 
@@ -267,8 +264,12 @@ function limitVectorMagnitude(vector, max) {
   return vector;
 }
 
-// Only add score if its in top 5
-function addScore(playerData) {
-  db.getHighScores();
-  db.addScore(playerData);
+// Only add if in top 5 highest scores this week
+function addHighScore(playerData) {
+  db.getHighScores(function(scores) {
+    if (playerData.score > scores[scores.length - 1].score) {
+      db.addScore(playerData);
+    }
+  });
 }
+
