@@ -7,6 +7,7 @@ var spriteIds = {};
 var arena;
 var arenaSize = 900;
 var gameStarted = 0;
+var highScores = [];
 
 var playerX;
 var playerY;
@@ -16,8 +17,9 @@ function setup() {
   socket = io.connect('http://localhost:8080');
   socket.on('clientStart', startGame);
   socket.on('serverTick', getServerData);
-  socket.on('disconnected', playerDisconnected);
   socket.on('restartGame', restartGame);
+  socket.on('scores', updateHighScores);
+  socket.on('disconnected', playerDisconnected);
 
   createCanvas(600, 600);
 
@@ -84,18 +86,18 @@ function draw() {
 
     arena.show();
     player.show();
+    drawOtherPlayers();
+    drawScore();
 
     if (player.dead) {
 
       if (player.gameOver) {
         showGameOver();
+        showHighScores();
       }
     }
       
     sendServerUpdate();
-
-    drawScore();
-    drawOtherPlayers();
   }
 }
 
@@ -137,11 +139,22 @@ function playerDisconnected(id) {
 }
 
 function drawScore() {
+  // Player score
   fill(255);
   stroke(0);
   strokeWeight(4);
+  textAlign(CENTER);
   textSize(50);
   text(player.score, player.x, player.y - height*0.3);
+  
+  // Current high scores
+  //for (var i = 0; i < 5; i++) {
+  //  fill(255);
+  //  stroke(0);
+  //  strokeWeight(1);
+  //  textSize(15);
+  //  text(players[i].score, arena.width - 50, 0);
+  //}
 }
 
 function showGameOver() {
@@ -149,8 +162,8 @@ function showGameOver() {
   stroke(0);
   strokeWeight(4);
   textAlign(CENTER);
-  textSize(90);
-  text('You Died', player.x, player.y - 50);
+  textSize(70);
+  text('You Died', player.x, player.y - height/2.5);
 
   var restartBtn = select('#restartBtn');
   if (restartBtn) {
@@ -161,6 +174,20 @@ function showGameOver() {
     restartBtn.position(width/2 - 50, height/2 + 70);
     restartBtn.size(100, 50);
     restartBtn.mousePressed(restartClicked);
+  }
+}
+
+function showHighScores() {
+  fill(255);
+  stroke(0);
+  strokeWeight(2);
+  textAlign(CENTER);
+  textSize(20);
+
+  text('High scores this week', player.x, (player.y-120));
+  for (var i = 0; i < 5; i++) {
+    var scoreText = highScores[i].name + ": " + highScores[i].score;
+    text(scoreText, player.x, (player.y-90)+(22*i));
   }
 }
 
@@ -198,5 +225,9 @@ function getMousePos() {
   };
 
   return mousePos;
+}
+
+function updateHighScores(data) {
+  highScores = data;
 }
 

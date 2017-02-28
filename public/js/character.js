@@ -28,11 +28,13 @@ function Player(name, x, y, r) {
     strokeWeight(2);
     ellipse(this.x, this.y, this.r*2, this.r*2);
 
-    fill(255);
-    noStroke();
-    textAlign(CENTER);
-    textSize(14);
-    text(this.name, this.x, this.y + 35);
+    if (!this.gameOver) {
+      fill(255);
+      noStroke();
+      textAlign(CENTER);
+      textSize(14);
+      text(this.name, this.x, this.y + 35);
+    }
   }
 
   this.getData = function() {

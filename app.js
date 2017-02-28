@@ -1,5 +1,6 @@
 var express = require('express');
 var socket = require('socket.io');
+var db = require('./db.js');
 var PlayerData = require('./player.js');
 var Arena = require('./arena.js');
 var Matter = require('matter-js');
@@ -20,6 +21,8 @@ var io = socket(server);
 var engine = Matter.Engine.create();
 engine.world.gravity.y = 0;
 engine.timing.delta = 1000 / 60;
+
+
 
 // Server tick rate 60hz
 setInterval(serverTick, engine.timing.delta);
@@ -99,6 +102,17 @@ Matter.Events.on(engine, 'afterUpdate', function(event) {
 
           playerData = getPlayerDataById(allBodies[i].socketId);
           playerData.update(allBodies[i]);
+          
+          // Add score to scores table
+          db.addScore(playerData);
+
+          console.log(allBodies[i].socketId);
+          if (io.sockets.connected[playerData.socketId]) {
+            db.getHighScores(function(scores) {
+              io.sockets.connected[playerData.socketId].emit('scores', scores);
+            });
+
+          }
         }
 
         // Fall off the map
@@ -128,7 +142,6 @@ io.on('connection', function(socket) {
 
     // Signal client to start game
     socket.emit('clientStart', players);
-    console.log(socket.id + " Game started!");
   });
 
   // Mouse data sent from client
@@ -146,7 +159,6 @@ io.on('connection', function(socket) {
       // Apply burst of force in dir of mouse
       var force = Matter.Vector.create(data.mousex, data.mousey);
       force = Matter.Vector.normalise(force);
-      //force = Matter.Vector.div(force, 10);
       playerBody.forceToBeApplied = force;
 
       playerBody.dashed = true;
@@ -254,3 +266,8 @@ function limitVectorMagnitude(vector, max) {
   return vector;
 }
 
+// Only add score if its in top 5
+function addScore(playerData) {
+  db.getHighScores();
+  db.addScore(playerData);
+}
