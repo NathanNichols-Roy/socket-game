@@ -185,7 +185,7 @@ function showHighScores() {
   textSize(20);
 
   text('High scores this week', player.x, (player.y-120));
-  for (var i = 0; i < 5; i++) {
+  for (var i = 0; i < highScores.length; i++) {
     var scoreText = highScores[i].name + ": " + highScores[i].score;
     text(scoreText, player.x, (player.y-90)+(22*i));
   }
