@@ -34,7 +34,7 @@ var obstaclesGroup = Matter.Composite.create();
 var playerCategory = 0x0001,
     obstacleCategory = 0x0002;
 
-createObstacles(25);
+createObstacles(20);
 
 function createObstacles(num) {
   var obstacle;
@@ -217,24 +217,20 @@ Matter.Events.on(engine, 'collisionStart', function(event) {
   for (var i = 0; i < pairs.length; i++) {
     var pair = pairs[i];
 
-    console.log(pair.collision.depth);
-
     // Player/Player collision
     if (pair.bodyA.collisionFilter.category === playerCategory &&
         pair.bodyB.collisionFilter.category === playerCategory) {
     } else {
       // Player/Obstacle collision
       // Increase the impact of the collision
-      if (pair.bodyA.collisionFilter === playerCategory) {
+      if (pair.bodyA.collisionFilter.category === playerCategory) {
         force = Matter.Vector.sub(pair.bodyA.position, pair.bodyB.position);
-
-        pair.bodyA.forceToBeApplied = Matter.Vector.normalise(force);
-        console.log(pair.bodyA.forceToBeApplied);
+        force = Matter.Vector.normalise(force);
+        pair.bodyA.forceToBeApplied = force;
       } else {
         force = Matter.Vector.sub(pair.bodyB.position, pair.bodyA.position);
-
-        pair.bodyB.forceToBeApplied = Matter.Vector.normalise(force);
-        console.log(pair.bodyA.forceToBeApplied);
+        force = Matter.Vector.normalise(force);
+        pair.bodyB.forceToBeApplied = force;
       }
     }
   }
@@ -292,7 +288,7 @@ io.on('connection', function(socket) {
 
       playerBody.dashed = true;
       setTimeout(resetDashCD, playerBody.dashCD, playerBody);
-      setTimeout(removeObstacleBody, 400, shot);
+      setTimeout(removeObstacleBody, 1400, shot);
     }
   });
 
