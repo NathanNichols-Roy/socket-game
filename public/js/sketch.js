@@ -2,6 +2,7 @@ var socket;
 
 var player;
 var players = [];
+var obstacles = [];
 var otherPlayerSprites;
 var spriteIds = {};
 var arena;
@@ -39,7 +40,8 @@ function setup() {
 }
 
 function getServerData(data) {
-  players = data;
+  players = data.players;
+  obstacles = data.obstacles;
 }
 
 function setupEnvironment() {
@@ -87,6 +89,7 @@ function draw() {
     arena.show();
     player.show();
     drawOtherPlayers();
+    drawObstacles();
     drawScore();
 
     if (player.dead) {
@@ -130,6 +133,15 @@ function drawOtherPlayers() {
       textSize(14);
       text(p.name, p.x, p.y + 35);
     }
+  });
+}
+
+function drawObstacles() {
+  obstacles.forEach(function(o, i) {
+    fill(0, 255, 0);
+    stroke(0);
+    strokeWeight(3);
+    ellipse(o.x, o.y, o.r*2, o.r*2);
   });
 }
 
