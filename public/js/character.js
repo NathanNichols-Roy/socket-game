@@ -4,7 +4,7 @@ function Player(name, x, y, r) {
   this.y = y;
   this.r = r;
   this.score = 0;
-  this.dashed = false;
+  this.shooting = false;
   this.dead = false;
   this.gameOver = false;
 
@@ -13,7 +13,7 @@ function Player(name, x, y, r) {
     this.y = playerData.y;
     this.r = playerData.r;
     this.score = playerData.score;
-    this.dashed = playerData.dashed;
+    this.shooting = playerData.shooting;
     this.dead = playerData.dead;
     
     if (this.dead && this.r <= 0.1) {
@@ -22,8 +22,7 @@ function Player(name, x, y, r) {
   }
 
   this.show = function() {
-    if (this.dashed) fill (0, 0, 150);
-    else fill(0, 0, 255);
+    fill ('#00BCD4');
     stroke(0)
     strokeWeight(2);
     ellipse(this.x, this.y, this.r*2, this.r*2);

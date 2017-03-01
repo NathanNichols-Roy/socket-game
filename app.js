@@ -32,9 +32,37 @@ var playersGroup = Matter.Composite.create();
 var obstaclesGroup = Matter.Composite.create();
 // Define collision categories
 var playerCategory = 0x0001,
-    obstacleCategory = 0x0002;
+    obstacleCategory = 0x0002,
+    staticCategory = 0x0003;
 
-createObstacles(20);
+createStaticObstacles(0);
+createObstacles(10);
+
+function createStaticObstacles() {
+  var obstacle;
+  var obstacleData;
+  var radius = 40;
+  var options = {
+    collisionFilter: {
+      category: staticCategory
+    },
+    friction: 0,
+    frictionAir: 0,
+    mass: 1000,
+    restitution: 0,
+    isStatic: true
+  };
+
+  for (var i = arena.width/4; i < arena.width; i += arena.width/4) {
+    for (var j = arena.height/4; j < arena.height; j += arena.height/4) {
+      if (i !== arena.width/2 && j !== arena.height/2) {
+        obstacle = createObstacleBody(i, j, radius, options);
+        obstacleData = createObstacleData(obstacle);
+        obstacleData.color = '#1B5E20';
+      }
+    }
+  }
+}
 
 function createObstacles(num) {
   var obstacle;
@@ -42,13 +70,24 @@ function createObstacles(num) {
   var randx;
   var randy;
   var angle;
+  var radius = 25;
+  var options = {
+    // only collide with players
+    collisionFilter: {
+      category: obstacleCategory,
+      mask: playerCategory
+    },
+    friction: 0,
+    frictionAir: 0,
+    mass: 100,
+    restitution: 1
+  };
 
   for (var i = 0; i < num; i++) {
     randx = Matter.Common.random(0, arena.width);
     randy = Matter.Common.random(0, arena.height);
-    obstacle = createObstacleBody(randx, randy, 25);
+    obstacle = createObstacleBody(randx, randy, radius, options);
     obstacleData = createObstacleData(obstacle);
-    //obstacle = Matter.Bodies.circle(randx, randy, 10, options);
 
     angle = Matter.Common.random(0, 1) * (2 * Math.PI);
     var force = {
@@ -56,7 +95,6 @@ function createObstacles(num) {
       y: Math.sin(angle)
     };
 
-    //obstacle.forceToBeApplied = Matter.Vector.mult(force, 3);
     obstacle.forceToBeApplied = force;
   }
 }
@@ -78,10 +116,14 @@ function createPlayerBody(socketId, name, x, y, r) {
   playerBody.name = name;
   playerBody.score = 0
   playerBody.rawScore = 0;
-  playerBody.mousex = arena.width/2;
-  playerBody.mousey = arena.height/2;
-  playerBody.dashed = false;
-  playerBody.dashCD = 1500;
+  playerBody.input = {
+    w: false,
+    a: false,
+    s: false,
+    d: false
+  };
+  playerBody.shooting = false;
+  playerBody.shootCD = 400;
   playerBody.forceToBeApplied = Matter.Vector.create(0, 0);
   playerBody.velocityToBeApplied = Matter.Vector.create(0, 0);
 
@@ -90,18 +132,7 @@ function createPlayerBody(socketId, name, x, y, r) {
   return playerBody;
 }
 
-function createObstacleBody(x, y, r) {
-  var options = {
-    // only collide with players
-    collisionFilter: {
-      category: obstacleCategory,
-      mask: playerCategory
-    },
-    friction: 0,
-    frictionAir: 0,
-    mass: 100,
-    restitution: 1
-  };
+function createObstacleBody(x, y, r, options) {
   var obstacleBody = Matter.Bodies.circle(x, y, r, options);
 
   //Custom properties
@@ -146,16 +177,9 @@ Matter.Events.on(engine, 'beforeUpdate', function(event) {
   for (var i = 0; i < playerBodies.length; i++) {
     for (var j = 0; j < players.length; j++) {
       if (players[j].socketId === playerBodies[i].socketId) {
-        // MOVEMENT
-        var force = Matter.Vector.create(playerBodies[i].mousex, playerBodies[i].mousey);
-        force = Matter.Vector.div(force, 3000);
-        force = limitVectorMagnitude(force, 0.1);
-        force = Matter.Vector.add(force, playerBodies[i].forceToBeApplied);
+        doMovement(playerBodies[i]);
 
-        // Apply force to player from center of body to mouse position
-        Matter.Body.applyForce(playerBodies[i], playerBodies[i].position, force);
-
-        // Reset dashing force. Body force gets reset every update
+        // Reset shooting force. Body force gets reset every update
         playerBodies[i].forceToBeApplied = Matter.Vector.create(0, 0);
 
         updateScore(playerBodies[i]);
@@ -258,26 +282,35 @@ io.on('connection', function(socket) {
     socket.emit('clientStart', players);
   });
 
-  // Mouse data sent from client
-  socket.on('mousePos', function(data) {
+  // Keyboard input from client
+  socket.on('keyboardInput', function(input) {
     var playerBody = getPlayerBodyById(socket.id);
-    playerBody.mousex = data.mousex;
-    playerBody.mousey = data.mousey;
+    playerBody.input = input;
   });
 
-  // Dashing
+  // shooting
   socket.on('mouseClicked', function(data) {
     var playerBody = getPlayerBodyById(socket.id);
 
-    if (!playerBody.dashed) {
+    if (!playerBody.shooting) {
+      var options = {
+        // only collide with players
+        collisionFilter: {
+          category: obstacleCategory,
+          mask: playerCategory
+        },
+        friction: 0,
+        frictionAir: 0,
+        mass: 100,
+        restitution: 1
+      };
       // Shoot force in dir of mouse
-
       var shotPosition = Matter.Vector.create(data.mousex, data.mousey);
       // Magnitude = rad * 2
       shotPosition = limitVectorMagnitude(shotPosition, 2*playerBody.circleRadius);
       shotPosition = Matter.Vector.add(playerBody.position, shotPosition);
       
-      var shot = createObstacleBody(shotPosition.x, shotPosition.y, playerBody.circleRadius);
+      var shot = createObstacleBody(shotPosition.x, shotPosition.y, playerBody.circleRadius, options);
       createObstacleData(shot);
 
       var force = Matter.Vector.create(data.mousex, data.mousey);
@@ -286,9 +319,9 @@ io.on('connection', function(socket) {
 
       shot.forceToBeApplied = force;
 
-      playerBody.dashed = true;
-      setTimeout(resetDashCD, playerBody.dashCD, playerBody);
-      setTimeout(removeObstacleBody, 1400, shot);
+      playerBody.shooting = true;
+      setTimeout(resetShootCD, playerBody.shootCD, playerBody);
+      setTimeout(removeObstacleBody, 400, shot);
     }
   });
 
@@ -329,8 +362,8 @@ io.on('connection', function(socket) {
 // HELPER FUNCTIONS
 //-----------------
 
-function resetDashCD(playerBody) {
-  playerBody.dashed = false;
+function resetShootCD(playerBody) {
+  playerBody.shooting = false;
 }
 
 function removePlayerBody(body) {
@@ -427,5 +460,36 @@ function bounceOffBoundaries(body) {
     newVel = Matter.Vector.create(body.velocity.x, -body.velocity.y);
     Matter.Body.setVelocity(body, newVel);
   }
+}
+
+function doMovement(body) {
+  var force = Matter.Vector.create(0, 0);
+  var fmag = .05;
+
+  if (body.input.w) {
+    var upForce = Matter.Vector.create(0, -fmag);
+    force = Matter.Vector.add(force, upForce);
+  }
+  if (body.input.a) {
+    var leftForce = Matter.Vector.create(-fmag, 0);
+    force = Matter.Vector.add(force, leftForce);
+  }
+  if (body.input.s) {
+    var downForce = Matter.Vector.create(0, fmag);
+    force = Matter.Vector.add(force, downForce);
+  }
+  if (body.input.d) {
+    var rightForce = Matter.Vector.create(fmag, 0);
+    force = Matter.Vector.add(force, rightForce);
+  }
+
+  // limit mag if 2 buttons pressed
+  force = limitVectorMagnitude(force, fmag);
+
+  // Add movement force to forces that were going to be applied
+  force = Matter.Vector.add(force, body.forceToBeApplied);
+
+  // Apply force to player from center of body 
+  Matter.Body.applyForce(body, body.position, force);
 }
 

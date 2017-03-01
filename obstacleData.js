@@ -3,6 +3,7 @@ function ObstacleData(id, x, y, r) {
   this.x = x;
   this.y = y;
   this.r = r;
+  this.color = '#8BC34A';
 
   this.update = function(body) {
     this.x = body.position.x;

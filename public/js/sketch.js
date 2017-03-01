@@ -99,6 +99,8 @@ function draw() {
         showHighScores();
       }
     }
+  if (keyIsDown(68)) {
+  }
       
     sendServerUpdate();
   }
@@ -106,7 +108,32 @@ function draw() {
 
 function sendServerUpdate() {
   var data = getMousePos();
+  var input = {
+    w: false,
+    a: false,
+    s: false,
+    d: false
+  };
+
+  // W
+  if (keyIsDown(87)) {
+    input.w = true;
+  }
+  // A
+  if (keyIsDown(65)) {
+    input.a = true;
+  }
+  // S
+  if (keyIsDown(83)) {
+    input.s = true;
+  }
+  // D
+  if (keyIsDown(68)) {
+    input.d = true;
+  }
+
   socket.emit('mousePos', data);
+  socket.emit('keyboardInput', input);
 }
 
 function getSelfFromServer() {
@@ -121,8 +148,7 @@ function drawOtherPlayers() {
   players.forEach(function(p, i) {
     // Dont draw self
     if (p.socketId !== socket.id) {
-      if (p.dashed) fill(150, 0, 0);
-      else fill(255, 0, 0);
+      fill('#F44336');
       stroke(0)
       strokeWeight(2);
       ellipse(p.x, p.y, p.r*2, p.r*2);
@@ -138,7 +164,7 @@ function drawOtherPlayers() {
 
 function drawObstacles() {
   obstacles.forEach(function(o, i) {
-    fill(0, 255, 0);
+    fill(o.color);
     stroke(0);
     strokeWeight(3);
     ellipse(o.x, o.y, o.r*2, o.r*2);
