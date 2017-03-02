@@ -35,7 +35,7 @@ var playerCategory = 0x0001,
     obstacleCategory = 0x0002,
     staticCategory = 0x0003;
 
-createStaticObstacles(0);
+createStaticObstacles();
 createObstacles(10);
 
 function createStaticObstacles() {

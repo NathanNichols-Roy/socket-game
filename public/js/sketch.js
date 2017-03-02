@@ -34,7 +34,7 @@ function setup() {
 
   var submitBtn = createButton('Play');
   submitBtn.class('menu');
-  submitBtn.position(width/2 - 50, height/2 + 50);
+  submitBtn.position(width/2 - 48, height/2 + 50);
   submitBtn.size(100, 50);
   submitBtn.mousePressed(setupEnvironment);
 }
@@ -80,7 +80,9 @@ function startGame(data) {
 function draw() {
   background(0);
 
-  if (gameStarted) {
+  if (!gameStarted) {
+    drawTitleScreen();
+  } else {
     var serverPlayer = getSelfFromServer();
     player.update(serverPlayer);
     // Center camera on player
@@ -92,22 +94,24 @@ function draw() {
     drawObstacles();
     drawScore();
 
-    if (player.dead) {
-
-      if (player.gameOver) {
-        showGameOver();
-        showHighScores();
-      }
+    if (player.dead && player.gameOver) {
+      showGameOver();
+      showHighScores();
     }
-  if (keyIsDown(68)) {
-  }
       
     sendServerUpdate();
   }
 }
 
+function drawTitleScreen() {
+  var controlsText = 'Controls\nW-A-S-D to move\nMouse click to shoot';
+  fill(255);
+  textAlign(CENTER);
+  textSize(25);
+  text(controlsText, width/2-7, height/2 + 140);
+}
+
 function sendServerUpdate() {
-  var data = getMousePos();
   var input = {
     w: false,
     a: false,
@@ -132,7 +136,6 @@ function sendServerUpdate() {
     input.d = true;
   }
 
-  socket.emit('mousePos', data);
   socket.emit('keyboardInput', input);
 }
 
