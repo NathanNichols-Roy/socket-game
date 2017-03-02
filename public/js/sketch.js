@@ -22,7 +22,7 @@ function setup() {
   socket.on('scores', updateHighScores);
   socket.on('disconnected', playerDisconnected);
 
-  createCanvas(600, 600);
+  createCanvas(800, 800);
 
   var nameEntry = createInput();
   nameEntry.id('name-entry');
